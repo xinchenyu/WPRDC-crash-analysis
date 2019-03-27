@@ -1,0 +1,137 @@
+---
+title: "wprdc_analysis"
+author: "Xinchen"
+date: "2019年3月27日"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+### Abstract
+
+We analyze traffic accidents happened from 2004 to 2017 in four neighborhoods in Pittsburgh and adopt association rules to find the most significant features in causing traffic accidents as well as causing people injury or fatal in those accidents. The result shows drinking is a severe issue in hill districts and homewood. Also, more stop signs at hill districts and homewood are along with more crashes, while at shadyside and squirrel hill, stop signs may be efficient in reducing accidents.
+
+
+### Introduction and Problem Description
+
+Analyzing the features of accidents in Pittsburgh is interesting. We will use real-world data to reflect the accident conditions in our city. By exploring the crash related dataset, are we able to find out some interesting stories. We are especially curious about what features are correlated with each other, for example, is there any features caused injury in the accidents? Will drinking become a vital issue that cause fatal accidents? Also, we are interested in finding out the different problems exist in various neighborhoods in Pittsburgh and if the income conditions in different neighborhoods cause those problems. Finding out the problems can be quite helpful in developming our city's traffic conditions. 
+
+### Crash Datasets
+```{r pre_hills, include = FALSE}
+library("grid")
+library("arules")
+library("arulesViz")
+library("knitr")
+mydata_hills <- read.csv("C:/Users/Administrator.USER-20170206GP/hills.csv",header=T,colClasses="factor")
+data_desc <- read.csv("C:/Users/Administrator.USER-20170206GP/crash_desc.csv",header=T,colClasses="factor")
+rules_hills <- apriori(mydata_hills,parameter = list(minlen=2,maxlen=3,supp=0.02,conf=0.3),appearance = list(rhs=c("INJURY=1"),lhs=c("AGGRESSIVE=1","SPEEDING=1","ALCOHOL=1","DISTRACTED=1","SIGNAL=1","STOPSIGN=1","DARK=1","RUNNING_RED_LT=1","RUNNING_STOP_SIGN=1"),default="none"))
+```
+
+The crash dataset contains information about crash incidents that happened in Allegheny County from 2004 to 2017. Our final datasets include 11 attributes after extacting data from Hill Districts, Homewood, Shadyside and Squirrel Hill respectively. A brief introduction about the descriptions of different attributes chosen are shown below. In the association rule mining method, we define the "INJURY_OR_FATAL" as the left-hand side of an equation(RHS)[4], which means the indicator of whether the crash causes injury or fatal or not frequently appeared along with other 10 fields. 
+
+```{r desc, echo=FALSE, results='asis'}
+kable(data_desc[1:14, ])
+```
+
+### Data Preprocessing
+We have used ArcMap, a component of ArcGIS, to extract the data points in the three neighborhoods using a shape file that contains the City of Pittsburgh neighborhoods. This approach is efficient as it requires less processing time and accurately finds the data points that are situated in each neighborhood. The following screenshots show three main stages to extract the data points in the three neighborhoods.
+![alt text here](C:/Users/Administrator.USER-20170206GP/arcmap1.png)
+![alt text here](C:/Users/Administrator.USER-20170206GP/arcmap2.png)
+![alt text here](C:/Users/Administrator.USER-20170206GP/arcmap3.png)
+
+### Association Rules
+
+Association rule learning is a rule-based machine learning method for discovering interesting relationships between variables in large databases[1]. Its ultimate goal is using the machine to mimic the human brain's feature extraction and abstract association capabilities from new uncategorized data. It was introduced for discovering regularities between products in large-scale transaction data recorded by Point-of-sale(POS) systems in supermarkets[2]. For example, the rule {eggs,onions}->{meat} found in the sales data of supermarket might indicate that if the customers buy eggs and onions together, they are likely to buy meat to make burger.
+
+The best known constrains to select interesting rules from set of all possible rules are minimum thresholds on support and confidence. The minimum support threshold and the minimum confidence threshold are specified by the users.There are three common ways to measure association.
+
+**Support** indicates how frequently the itemset appears in the dataset. It is calculated as the proportion of the transactions in the dataset which contains the itemset. 
+
+**Confidence** indicated how likey item Y is purchased when item X is purchased, expressed as {X->Y}. It is calculated by the proportion of transections with item X, in which item Y also appears like conf(X->Y)=supp(X??Y)/supp(X). One drawback of the confidence measure is that it might misrepresent the importance of an association because it only accounts for how popular X are, but not Y. So to account for the base popularity of both constituent items, we use a third measure called lift[3]. 
+
+**Lift** is defined as: lift(X->Y)=supp(X??Y)/(supp(X)*supp(Y)).It can be interpreted as the deviation of the support of the whole rule from the support expected under independence given the supports of the LHS and the RHS. Greater lift means stronger associations. If the lift is >1, the two occurrences are dependent on each other. If the lift is =1, it means possibly the two events are independent of each other, no rule can be drawn involving those two events.
+
+
+
+### Data Analysis
+
+We choose three ways to visualize the mined rule set for crash datasets in 4 neighborhoods including an interactive data table, a scatter plot and a graph-based visualation. The interactive data table allows us to sort the rules given different kind of measures, specify ranges for measures and provides filters for items. A scatter plot using support and confidence on the axes and the lift is visualized by the color of the points. Graph-based techniques concentrate on the relationship between individual items in the rule set[5].
+ 
+#### Hill Districts
+
+The result is a set of 15 association rules sorted by lift. The top seven rules represent INJURY_OR_FATAL appears most likely when ALCOHOL_RELATED, STOP_CONTROLLED_INT, ALCOHOL_RELATED and ILLUMINATION_DARK, SPEEDING_RELATED and ILLUMINATION_DARK, DISTRACT and INTERSECTION??SPEEDING_RELATED, AGGRESIVE_DRIVING and SPEEDING_RELATED, ALCOHOL_RELATED and INTERSECTION appear. The higher lift, the higher confidence along with.
+
+```{r hills, warning = FALSE,  message = FALSE, echo=FALSE}
+rules_hills <- sort(rules_hills, by="lift")
+inspectDT(rules_hills)
+plotly_arules(rules_hills)
+plot(rules_hills, method = "graph", engine = "htmlwidget")
+```
+
+
+#### Homewood
+
+The result is a set of 20 association rules sorted by lift. The top rules represent INJURY_OR_FATAL appears most likely when STOP_CONTROLLED_INT, ALCOHOL_RELATED, SIGNALIZED_INT appear. The higher lift, the higher confidence along with.
+
+```{r pre_homewood, include = FALSE}
+mydata_homewood <- read.csv("C:/Users/Administrator.USER-20170206GP/homewood.csv",header=T,colClasses="factor")
+rules_homewood <- apriori(mydata_homewood,parameter = list(minlen=2,maxlen=3,supp=0.02,conf=0.3),appearance = list(rhs=c("INJURY=1"),lhs=c("AGGRESSIVE=1","SPEEDING=1","ALCOHOL=1","DISTRACTED=1","SIGNAL=1","STOPSIGN=1","DARK=1","RUNNING_RED_LT=1","RUNNING_STOP_SIGN=1"),default="none"))
+```
+
+```{r homewood, warning = FALSE, message = FALSE, echo=FALSE}
+rules_homewood <- sort(rules_homewood, by="lift")
+inspectDT(rules_homewood)
+plotly_arules(rules_homewood)
+plot(rules_homewood, method = "graph", engine = "htmlwidget")
+```
+
+
+#### Shadyside
+
+The result is a set of 16 association rules sorted by lift. The top three rules represent INJURY_OR_FATAL appears most likely when SIGNALIZED_INT, AGGRESSIVE_DRIVING and SIGNALIZED_INT, SIGNALIZED_INT and ILLUMINATION_DARK appear. Interestingly, compared with the former two neighborhoods, fewer rules seem associate with the RHS.
+
+```{r pre_shadyside, include = FALSE}
+mydata_shadyside <- read.csv("C:/Users/Administrator.USER-20170206GP/shadyside.csv",header=T,colClasses="factor")
+rules_shadyside <- apriori(mydata_shadyside,parameter = list(minlen=2,maxlen=3,supp=0.02,conf=0.3),appearance = list(rhs=c("INJURY=1"),lhs=c("AGGRESSIVE=1","SPEEDING=1","ALCOHOL=1","DISTRACTED=1","SIGNAL=1","STOPSIGN=1","DARK=1","RUNNING_RED_LT=1","RUNNING_STOP_SIGN=1"),default="none"))
+```
+
+```{r shadyside, warning = FALSE, message = FALSE, echo=FALSE}
+rules_shadyside <- sort(rules_shadyside, by="lift")
+inspectDT(rules_shadyside)
+plotly_arules(rules_shadyside)
+plot(rules_shadyside, method = "graph", engine = "htmlwidget")
+```
+
+
+#### Squirrel Hill
+
+The result is a set of 17 association rules sorted by lift. The top three rules represent INJURY_OR_FATAL appears most likely when ILLUMINATION_DARK and SIGNALIZED_INT, SIGNALIZED_INT, ALCOHOL_RELATED, ALCOHOL_RELATED and ILLUMINATION_DARK appear. The higher lift, the higher confidence along with.
+
+```{r pre_squirrelhill, include = FALSE}
+mydata_squirrelhill <- read.csv("C:/Users/Administrator.USER-20170206GP/squirrelhill.csv",header=T,colClasses="factor")
+rules_squirrelhill <- apriori(mydata_squirrelhill,parameter = list(minlen=2,maxlen=3,supp=0.02,conf=0.3),appearance = list(rhs=c("INJURY=1"),lhs=c("AGGRESSIVE=1","SPEEDING=1","ALCOHOL=1","DISTRACTED=1","SIGNAL=1","STOPSIGN=1","DARK=1","RUNNING_RED_LT=1","RUNNING_STOP_SIGN=1"),default="none"))
+```
+
+```{r squirrelhill, warning = FALSE, message = FALSE, echo=FALSE}
+rules_squirrelhill <- sort(rules_squirrelhill, by="lift")
+inspectDT(rules_squirrelhill)
+plotly_arules(rules_squirrelhill)
+plot(rules_squirrelhill, method = "graph", engine = "htmlwidget")
+```
+
+![](C:/Users/Administrator.USER-20170206GP/compare.png)
+
+
+### Results
+
+Sorting by the lift, we can find some interesting rules related to INJURY_OR_NOT in 4 different neighboors. ALCOHOL_RELATED has closest associations with INJURY_OR_NOT in Hill Districts,  Homewood as well as Squirrel Hill and among them the drinking issue seems most serious in Homehood since it has the highest lift and the top three rules all include ALCOHOL_RELATED.
+
+Sorting by the support, we are able to get some ideas on some significant attibutes related to the crash issue in 4 neighboors. Squirrel hill has the most aggresive drivers since it has the highest count of 802. Illumination seems to be most serious in Hill Districts compared to the other three neighboors. Also, speeding seems to be most serious in Squirrel Hill.
+
+Also, from the logistic regression results, we are able to see the relationship between various variables with INJURY_OR_FATAL. Coincidently, SNOW_SLUSH_ROAD, ILLUMINATION_DARK and VEHICLE_COUNT seems stay same as significant variables in 4 neighborhoods. Respectively, at Homewood and Squirrel Hill, INSECTION is a significant variable. RUNNING_RED_LT is significant at Shadyside as well as ICY_ROAD at Squirrel Hill.
+
+
+
